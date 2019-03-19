@@ -1,6 +1,6 @@
 # Sprint1
 
-FPGA implementation by james10952001 of Sprint One arcade game released by Kee Games in 1978
+FPGA implementation by james10952001 of [Sprint One](https://github.com/james10952001/Sprint1 "Sprint One") arcade game released by Kee Games in 1978
 Port to MiSTer by Alan Steremberg
 
 The original Sprint game had a steering wheel with a quadrature encoder. This version implements a converter from the digital joystick inputs.
