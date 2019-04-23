@@ -44,6 +44,7 @@ port(
 			Gear1_I		: in  std_logic;  -- Gear shifter, 4th gear = no other gear selected
 			Gear2_I		: in  std_logic;
 			Gear3_I		: in  std_logic;
+			gear_shift	: in std_logic_vector(2 downto 0);
 			Test_I		: in  std_logic;  -- Self-test switch
 			SteerA_I		: in  std_logic;	-- Steering wheel inputs, these are quadrature encoders
 			SteerB_I		: in	std_logic;
@@ -245,6 +246,7 @@ port map(
 		display => display,
 		HCount => HCount,
 		VCount => VCount,
+		gear_shift=>gear_shift,
 		HBlank => HBlank,		
 		H256_s => H256_s,
 		VBlank => VBlank,

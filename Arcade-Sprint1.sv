@@ -73,6 +73,7 @@ assign HDMI_ARY = status[1] ? 8'd9  : 8'd3;
 `include "build_id.v"
 localparam CONF_STR = {
 	"A.SPRINT1;;",
+   "F,rom;", // allow loading of alternate ROMs
 	"-;",
 	"O1,Aspect Ratio,Original,Wide;",
 	"O35,Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%,CRT 75%;",  
@@ -217,19 +218,20 @@ joy2quad steer1
 );
 
 wire gear1,gear2,gear3;
+wire [2:0] gear;
 
 gearshift gearshift1
 (
-	.CLK(CLK_VIDEO_2),
-	.reset(m_start1|m_start2),
+	.CLK(clk_sys),
+	.reset(m_start1|m_start2|btn_start_1),
 	
 	.gearup(m_gearup),
 	.geardown(m_geardown),
 	
 	.gear1(gear1),
 	.gear2(gear2),
-	.gear3(gear3)
-
+	.gear3(gear3),
+	.gearout(gear)
 );
 
 
@@ -256,6 +258,7 @@ sprint1 sprint1(
 	.Gear1_I(gear1),
 	.Gear2_I(gear2),
 	.Gear3_I(gear3),
+	.gear_shift(gear),
 	.Test_I	(~status[13]),
 	.SteerA_I(steer[1]),
 	.SteerB_I(steer[0]),

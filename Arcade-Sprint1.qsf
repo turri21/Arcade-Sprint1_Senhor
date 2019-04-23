@@ -394,9 +394,9 @@ set_location_assignment PIN_W20 -to SW[3]
 set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:sys/build_id.tcl"
 
 
+set_global_assignment -name VHDL_FILE src/gearshift.vhd
 set_global_assignment -name SYSTEMVERILOG_FILE "Arcade-Sprint1.sv"
 set_global_assignment -name VHDL_FILE dpram.vhd
-set_global_assignment -name SYSTEMVERILOG_FILE src/gearshift.sv
 set_global_assignment -name SYSTEMVERILOG_FILE src/joy2quad.sv
 set_global_assignment -name VHDL_FILE src/T65/T65_Pack.vhd
 set_global_assignment -name VHDL_FILE src/T65/T65_MCode.vhd

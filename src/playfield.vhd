@@ -25,6 +25,7 @@ port(
 			Display			: in	std_logic_vector(7 downto 0);
 			HCount			: in  std_logic_vector(8 downto 0);
 			VCount			: in  std_logic_vector(7 downto 0);
+			gear_shift		: in std_logic_vector(2 downto 0);
 			H256_s			: out std_logic;
 			HBlank			: in	std_logic;
 			VBlank			: in	std_logic;
@@ -65,6 +66,7 @@ signal shift_data		: std_logic_vector(7 downto 0) := (others => '0');
 signal QH				: std_logic;
 
 signal R2_reg		: std_logic_vector(3 downto 0) := (others => '0');
+signal DISPLAY_7                : std_logic;
 
 
 -- These signals are based off the schematic and are formatted as Designator_PinNumber
@@ -99,7 +101,27 @@ P3_6 <= (HBlank or VBlank);
 
 
 
-char_addr <= display(5 downto 0) & V4 & V2 & V1;
+--char_addr <= display(5 downto 0) & V4 & V2 & V1;
+
+process(Hcount,Vcount)
+begin
+ -- this is the left side of the screen for the gear shift
+ if (HCount(7 downto 3) = "00000"  and Vcount(7 downto 3)="11011") then
+   DISPLAY_7 <= '1'; -- 1 is white, 0 is black
+   case gear_shift is
+        when "000" => char_addr <=  "110001" & V4 & V2 & V1;
+        when "001" => char_addr <=  "110010" & V4 & V2 & V1;
+        when "010" => char_addr <=  "110011" & V4 & V2 & V1;
+        when "011" => char_addr <=  "110100" & V4 & V2 & V1;
+        --when others => char_addr <= "001110" & V4 & V2 & V1;
+        when others => char_addr <= "110001" & V4 & V2 & V1;
+    end case;
+ else 
+   -- default behaviour
+   char_addr <= display(5 downto 0) & V4 & V2 & V1;
+   DISPLAY_7 <= display(7);
+ end if;
+end process;
 
 -- Background character ROMs
 --R4: entity work.Char_MSB
@@ -166,7 +188,8 @@ R2: process(clk6, R7_12, display, H256, P2_13, P3_6)
 begin
 	if rising_edge(clk6) then
 		if R7_12 = '0' then
-			R2_reg <= (H256 & display(7) & P3_6 & P2_13);
+			--R2_reg <= (H256 & display(7) & P3_6 & P2_13);
+			R2_reg <= (H256 & DISPLAY_7 & P3_6 & P2_13);
 		end if;
 	end if;
 end process;
