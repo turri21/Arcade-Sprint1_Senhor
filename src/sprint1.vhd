@@ -393,7 +393,8 @@ VideoW_O <= not(WhitePF_n and Car1_n);
 VideoRGB_O <= "111" when WhitePF_n = '0' else 
 			  "100" when BlackPF_n = '0' else 
 			  "010" when Car1_n    = '0' else 
-			  "011" when Car2_n    = '0' else 
+			  --"011" when Car2_n    = '0' else 
+			  "110" when Car2_n    = '0' else 
 			  "110" when Car3_4_n  = '0' else  "000";
 
 
