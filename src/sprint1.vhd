@@ -35,6 +35,7 @@ port(
 
 			VideoW_O		: out std_logic;  -- White video output (680 Ohm)
 			VideoB_O		: out std_logic;	-- Black video output (1.2k)
+			VideoRGB_O	: out std_logic_vector(2 downto 0); --RGB color MOD
 			Sync_O		: out std_logic;  -- Composite sync output (1.2k)
 			--Audio1_O		: out std_logic;  -- Ideally this should have a simple low pass filter
 			Coin1_I		: in  std_logic;  -- Coin switches (Active low)
@@ -389,7 +390,11 @@ port map(
 -- Video mixing	
 VideoB_O <= (not(BlackPF_n and Car2_n and Car3_4_n)) nor CompBlank_s;	
 VideoW_O <= not(WhitePF_n and Car1_n);
-
+VideoRGB_O <= "111" when WhitePF_n = '0' else 
+			  "100" when BlackPF_n = '0' else 
+			  "010" when Car1_n    = '0' else 
+			  "011" when Car2_n    = '0' else 
+			  "110" when Car3_4_n  = '0' else  "000";
 
 
 --Video:process(SprintVid)
