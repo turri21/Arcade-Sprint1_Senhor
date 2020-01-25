@@ -85,7 +85,7 @@ assign HDMI_ARY = status[1] ? 8'd9  : 8'd3;
 `include "build_id.v"
 localparam CONF_STR = {
 	"A.SPRINT1;;",
-	"O1,Aspect Ratio,Original,Wide;",
+	"H0O1,Aspect Ratio,Original,Wide;",
 	"O35,Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%,CRT 75%;",  
 	"-;",
 	"O8,Oil Slicks,On,Off;",
@@ -95,7 +95,8 @@ localparam CONF_STR = {
 	"OD,Test,Off,On;",
 	"-;",
 	"R0,Reset;",
-	"J1,Gas,GearUp,GearDown,Start 1P,Start 2P;",
+	"J1,Gas,GearUp,GearDown,Start 1P,Coin;",
+	"jn,A,R,L,Start,X;",
 	"V,v",`BUILD_DATE
 };
 
@@ -103,6 +104,8 @@ localparam CONF_STR = {
 wire [31:0] status;
 wire  [1:0] buttons;
 wire        forced_scandoubler;
+wire        direct_video;
+
 
 wire        ioctl_download;
 wire        ioctl_wr;
@@ -124,8 +127,10 @@ hps_io #(.STRLEN($size(CONF_STR)>>3)) hps_io
 
 	.buttons(buttons),
 	.status(status),
+	.status_menumask(direct_video),
 	.forced_scandoubler(forced_scandoubler),
 	.gamma_bus(gamma_bus),
+	.direct_video(direct_video),
 
 	.ioctl_download(ioctl_download),
 	.ioctl_wr(ioctl_wr),
@@ -155,8 +160,7 @@ always @(posedge clk_sys) begin
 			'h011: btn_gearup      <= pressed; // Lalt
 			'h029: btn_geardown    <= pressed; // space
 
-			'h005: btn_one_player  <= pressed; // F1
-			'h006: btn_two_players <= pressed; // F2
+			'h005: btn_start_1     <= pressed; // F1
 			// JPAC/IPAC/MAME Style Codes
 			'h016: btn_start_1     <= pressed; // 1
 			'h02E: btn_coin_1      <= pressed; // 5
@@ -165,16 +169,11 @@ always @(posedge clk_sys) begin
 	end
 end
 
-//reg btn_up    = 0;
-//reg btn_down  = 0;
 reg btn_right = 0;
 reg btn_left  = 0;
 reg btn_gas  = 0;
 reg btn_gearup  = 0;
 reg btn_geardown  = 0;
-
-reg btn_one_player  = 0;
-reg btn_two_players = 0;
 
 reg btn_start_1=0;
 reg btn_coin_1=0;
@@ -189,9 +188,9 @@ wire m_gas      =  btn_gas    | joy[4];
 wire m_gearup   =  btn_gearup |joy[5];
 wire m_geardown =  btn_geardown | joy[6];
 
-wire m_start1 = btn_one_player  | joy[7];
-wire m_start2 = btn_two_players | joy[8];
-wire m_coin   = m_start1 | m_start2;
+wire m_start1 = btn_start_1 | joy[7];
+//wire m_start2 = btn_start_2 | joy[8];
+wire m_coin   = btn_coin_1 | joy[9];
 
 
 
@@ -235,7 +234,7 @@ wire [2:0] gear;
 gearshift gearshift1
 (
 	.CLK(clk_sys),
-	.reset(m_start1|m_start2|btn_start_1),
+	.reset(m_start1),
 	
 	.gearup(m_gearup),
 	.geardown(m_geardown),
@@ -263,9 +262,9 @@ sprint1 sprint1(
 
 	.Sync_O(compositesync),
 	.Audio1_O(audio),
-	.Coin1_I(~(m_coin|btn_coin_1)),
-	.Coin2_I(~(m_coin|btn_coin_2)),
-	.Start_I(~(m_start1|btn_start_1)),
+	.Coin1_I(~(m_coin)),
+	.Coin2_I(~(btn_coin_2)),
+	.Start_I(~(m_start1)),
 	.Gas_I(~m_gas),
 	.Gear1_I(gear1),
 	.Gear2_I(gear2),
@@ -288,7 +287,7 @@ wire [6:0] audio;
 wire [1:0] video;
 
 ///////////////////////////////////////////////////
-wire clk_24,clk_12,CLK_VIDEO_2;
+wire clk_48,clk_12,CLK_VIDEO_2;
 wire clk_sys,locked;
 reg [7:0] vid_mono;
 wire[1:0] sprint_vid;
@@ -317,24 +316,26 @@ wire [2:0] r,g;
 wire [2:0] b;
 
 reg ce_pix;
-always @(posedge clk_24) begin
-        reg old_clk;
+always @(posedge clk_48) begin
+        reg [2:0] div;
 
-        old_clk <= CLK_VIDEO_2;
-        ce_pix <= old_clk & ~CLK_VIDEO_2;
+        div <= div + 1'd1;
+        ce_pix <= !div;
 end
 
-arcade_fx #(320,9) arcade_video
+arcade_video #(320,320,9) arcade_video
 (
         .*,
 
-        .clk_video(clk_24),
+        .clk_video(clk_48),
 
         .RGB_in({r,g,b}),
         .HBlank(hblank),
         .VBlank(vblank),
         .HSync(hs),
         .VSync(vs),
+        .no_rotate(1),
+        .rotate_ccw(0),
 
         .fx(status[5:3])
 );
@@ -344,7 +345,7 @@ pll pll (
 	.refclk ( CLK_50M   ),
 	.rst(0),
 	.locked 		( locked    ),        // PLL is running stable
-	.outclk_0	( clk_24	),        // 24 MHz
+	.outclk_0	( clk_48),        // 24 MHz
 	.outclk_1	( clk_12	)        // 12 MHz
 	 );
 
