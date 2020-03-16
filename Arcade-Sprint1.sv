@@ -191,7 +191,7 @@ wire m_geardown =  btn_geardown | joy[6];
 
 wire m_start1 = btn_start_1 | joy[7];
 //wire m_start2 = btn_start_2 | joy[8];
-wire m_coin   = btn_coin_1 | joy[9];
+wire m_coin   = btn_coin_1 | joy[8];
 
 
 
