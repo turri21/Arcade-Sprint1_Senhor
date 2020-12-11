@@ -39,6 +39,7 @@ module emu
 	output [1:0]  VGA_SL,
 	output        VGA_SCALER, // Force VGA scaler
 
+	`ifdef USE_FB
 	// Use framebuffer from DDRAM (USE_FB=1 in qsf)
 	// FB_FORMAT:
 	//    [2:0] : 011=8bpp(palette) 100=16bpp 101=24bpp 110=32bpp
@@ -63,6 +64,7 @@ module emu
 	output [23:0] FB_PAL_DOUT,
 	input  [23:0] FB_PAL_DIN,
 	output        FB_PAL_WR,
+	`endif
 
 	output        LED_USER,  // 1 - ON, 0 - OFF.
 
@@ -77,19 +79,20 @@ module emu
 	output [15:0] AUDIO_R,
 	output        AUDIO_S,   // 1 - signed audio samples, 0 - unsigned
 
-        //High latency DDR3 RAM interface
-        //Use for non-critical time purposes
-        output        DDRAM_CLK,
-        input         DDRAM_BUSY,
-        output  [7:0] DDRAM_BURSTCNT,
-        output [28:0] DDRAM_ADDR,
-        input  [63:0] DDRAM_DOUT,
-        input         DDRAM_DOUT_READY,
-        output        DDRAM_RD,
-        output [63:0] DDRAM_DIN,
-        output  [7:0] DDRAM_BE,
-        output        DDRAM_WE,
-
+	`ifdef USE_DDRAM
+	  //High latency DDR3 RAM interface
+	  //Use for non-critical time purposes
+	  output        DDRAM_CLK,
+	  input         DDRAM_BUSY,
+	  output  [7:0] DDRAM_BURSTCNT,
+	  output [28:0] DDRAM_ADDR,
+	  input  [63:0] DDRAM_DOUT,
+	  input         DDRAM_DOUT_READY,
+	  output        DDRAM_RD,
+	  output [63:0] DDRAM_DIN,
+	  output  [7:0] DDRAM_BE,
+	  output        DDRAM_WE,
+	`endif
 	// Open-drain User port.
 	// 0 - D+/RX
 	// 1 - D-/TX
@@ -106,15 +109,17 @@ assign LED_USER  = ioctl_download;
 assign LED_DISK  = 0;
 assign LED_POWER = lamp;
 
-assign {FB_PAL_CLK, FB_FORCE_BLANK, FB_PAL_ADDR, FB_PAL_DOUT, FB_PAL_WR} = '0;
+wire [1:0] ar = status[15:14];
 
-assign VIDEO_ARX = status[1] ? 8'd16 : 8'd4;
-assign VIDEO_ARY = status[1] ? 8'd9  : 8'd3;
+assign VIDEO_ARX =  (!ar) ? ( 8'd4) : (ar - 1'd1);
+assign VIDEO_ARY =  (!ar) ? ( 8'd3) : 12'd0;
+
+
 
 `include "build_id.v"
 localparam CONF_STR = {
 	"A.SPRINT1;;",
-	"H0O1,Aspect Ratio,Original,Wide;",
+	"H0OEF,Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
 	"O35,Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%,CRT 75%;",  
 	"-;",
 	"O8,Oil Slicks,On,Off;",
@@ -122,7 +127,7 @@ localparam CONF_STR = {
 	"OA,Extended Play,extended,normal;",
 	"OBC,Game time,150 Sec,120 Sec,90 Sec,60 Sec;",
 	"OD,Test,Off,On;",
-	"OE,Color,Off,On;",		
+	"OG,Color,Off,On;",		
 	"-;",
 	"R0,Reset;",
 	"J1,Gas,GearUp,GearDown,Start 1P,Coin;",
@@ -168,59 +173,19 @@ hps_io #(.STRLEN($size(CONF_STR)>>3)) hps_io
 	.ioctl_dout(ioctl_data),
 
 	.joystick_0(joystick_0),
-	.joystick_1(joystick_1),
-	.ps2_key(ps2_key)
+	.joystick_1(joystick_1)
 );
 
 
 
-wire       pressed = ps2_key[9];
-wire [8:0] code    = ps2_key[8:0];
-always @(posedge clk_sys) begin
-	reg old_state;
-	old_state <= ps2_key[10];
-	
-	if(old_state != ps2_key[10]) begin
-		casex(code)
-//			'hX75: btn_up          <= pressed; // up
-//			'hX72: btn_down        <= pressed; // down
-			'hX6B: btn_left        <= pressed; // left
-			'hX74: btn_right       <= pressed; // right
-			'h014: btn_gas         <= pressed; // ctrl
-			'h011: btn_gearup      <= pressed; // Lalt
-			'h029: btn_geardown    <= pressed; // space
+wire m_left     =  joy[1];
+wire m_right    =  joy[0];
+wire m_gas      =  joy[4];
+wire m_gearup   =  joy[5];
+wire m_geardown =  joy[6];
 
-			'h005: btn_start_1     <= pressed; // F1
-			// JPAC/IPAC/MAME Style Codes
-			'h016: btn_start_1     <= pressed; // 1
-			'h02E: btn_coin_1      <= pressed; // 5
-			'h036: btn_coin_2      <= pressed; // 6
-		endcase
-	end
-end
-
-reg btn_right = 0;
-reg btn_left  = 0;
-reg btn_gas  = 0;
-reg btn_gearup  = 0;
-reg btn_geardown  = 0;
-
-reg btn_start_1=0;
-reg btn_coin_1=0;
-reg btn_coin_2=0;
-
-
-//wire m_up     =  btn_up    | joy[3];
-//wire m_down   =  btn_down  | joy[2];
-wire m_left     =  btn_left   | joy[1];
-wire m_right    =  btn_right  | joy[0];
-wire m_gas      =  btn_gas    | joy[4];
-wire m_gearup   =  btn_gearup |joy[5];
-wire m_geardown =  btn_geardown | joy[6];
-
-wire m_start1 = btn_start_1 | joy[7];
-//wire m_start2 = btn_start_2 | joy[8];
-wire m_coin   = btn_coin_1 | joy[8];
+wire m_start1   =  joy[7];
+wire m_coin     =  joy[8];
 
 
 
@@ -295,7 +260,7 @@ sprint1 sprint1(
 	.Sync_O(compositesync),
 	.Audio1_O(audio),
 	.Coin1_I(~(m_coin)),
-	.Coin2_I(~(btn_coin_2)),
+	.Coin2_I(~(1'b0)),
 	.Start_I(~(m_start1)),
 	.Gas_I(~m_gas),
 	.Gear1_I(gear1),
@@ -334,9 +299,9 @@ always @(posedge clk_sys) begin
 		endcase
 end
 
-assign r=status[14] ? {3{videorgb[2]}} : vid_mono[7:5];
-assign g=status[14] ? {3{videorgb[1]}} : vid_mono[7:5];
-assign b=status[14] ? {3{videorgb[0]}} : vid_mono[7:5];
+assign r=status[16] ? {3{videorgb[2]}} : vid_mono[7:5];
+assign g=status[16] ? {3{videorgb[1]}} : vid_mono[7:5];
+assign b=status[16] ? {3{videorgb[0]}} : vid_mono[7:5];
 
 assign AUDIO_L={audio,1'b0,8'b00000000};
 assign AUDIO_R=AUDIO_L;
