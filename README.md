@@ -1,3 +1,8 @@
+-=(Sprint1_Senhor notes)=-
+
+Tested: Working Video 720p, 1080p & Sound.
+
+___
 # Sprint1
 
 FPGA implementation by james10952001 of [Sprint One](https://github.com/james10952001/Sprint1 "Sprint One") arcade game released by Kee Games in 1978
